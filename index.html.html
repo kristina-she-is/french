@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Français — Трекер C1</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a18;
+    --paper: #f4f0e8;
+    --cream: #ede8dc;
+    --accent: #c8401a;
+    --accent-light: #f0d4cc;
+    --gold: #b8962e;
+    --gold-light: #f5edcc;
+    --muted: #7a7468;
+    --done: #2a6b3c;
+    --done-bg: #d4ead9;
+    --border: #c8c2b4;
+    --phase1: #c8401a;
+    --phase2: #2a5298;
+    --phase3: #2a6b3c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+  .header { text-align: center; margin-bottom: 28px; }
+  .header::before { content:''; display:block; width:60px; height:3px; background:var(--accent); margin:0 auto 16px; }
+  .header-label { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  .header h1 { font-family:'Playfair Display',serif; font-size:28px; font-weight:400; line-height:1.2; margin-bottom:4px; }
+  .header h1 em { color:var(--accent); font-style:italic; }
+
+  .phase-banner { border-radius:2px; padding:12px 16px; margin-bottom:20px; border-left:4px solid; }
+  .phase-banner.p1 { background:#fdf0ea; border-color:var(--phase1); }
+  .phase-banner.p2 { background:#eaf0fd; border-color:var(--phase2); }
+  .phase-banner.p3 { background:#eafaf0; border-color:var(--phase3); }
+  .phase-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
+  .phase-name { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; font-weight:500; }
+  .p1 .phase-name { color:var(--phase1); }
+  .p2 .phase-name { color:var(--phase2); }
+  .p3 .phase-name { color:var(--phase3); }
+  .phase-weeks { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); }
+  .phase-goal { font-size:12px; color:var(--ink); line-height:1.5; margin-bottom:6px; }
+  .phase-tags { display:flex; flex-wrap:wrap; gap:6px; }
+  .phase-tag { font-family:'IBM Plex Mono',monospace; font-size:9px; padding:2px 8px; border-radius:1px; }
+  .p1 .phase-tag { background:#f8ddd4; color:#7a2010; }
+  .p2 .phase-tag { background:#d4e0f8; color:#1a3580; }
+  .p3 .phase-tag { background:#d4f0e0; color:#0e4020; }
+
+  .phase-progress { margin-bottom:20px; }
+  .phase-progress-label { display:flex; justify-content:space-between; margin-bottom:5px; }
+  .phase-progress-label span { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); }
+  .phase-bar { height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
+  .phase-fill { height:100%; border-radius:2px; transition:width 0.5s ease; }
+  .p1f { background:var(--phase1); }
+  .p2f { background:var(--phase2); }
+  .p3f { background:var(--phase3); }
+
+  .stats-bar { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:20px; }
+  .stat-box { background:var(--cream); border:1px solid var(--border); padding:10px 12px; border-radius:2px; text-align:center; }
+  .stat-val { font-family:'Playfair Display',serif; font-size:24px; font-weight:700; color:var(--accent); line-height:1; }
+  .stat-lbl { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:1px; color:var(--muted); text-transform:uppercase; margin-top:4px; }
+
+  .streak-row { display:flex; gap:5px; justify-content:center; margin-bottom:20px; flex-wrap:wrap; }
+  .streak-dot { width:9px; height:9px; border-radius:50%; background:var(--border); transition:background 0.3s; }
+  .streak-dot.lit { background:var(--accent); }
+  .streak-dot.today-dot { background:var(--gold); }
+
+  .week-nav { display:flex; align-items:center; justify-content:space-between; background:var(--cream); border:1px solid var(--border); border-radius:2px; padding:10px 16px; margin-bottom:14px; }
+  .week-nav button { background:none; border:none; font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--accent); cursor:pointer; padding:4px 8px; transition:opacity 0.2s; }
+  .week-nav button:hover { opacity:0.6; }
+  .week-nav button:disabled { opacity:0.2; cursor:default; }
+  .week-label { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink); letter-spacing:1px; text-align:center; }
+  .week-num { display:block; font-size:9px; color:var(--muted); margin-top:2px; }
+
+  .progress-wrap { margin-bottom:20px; }
+  .progress-meta { display:flex; justify-content:space-between; margin-bottom:6px; }
+  .progress-meta span { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); }
+  .progress-meta strong { color:var(--ink); font-weight:500; }
+  .progress-bar { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+  .progress-fill { height:100%; background:var(--accent); transition:width 0.4s ease; border-radius:2px; }
+
+  .days-grid { display:flex; flex-direction:column; gap:12px; }
+  .day-card { background:white; border:1px solid var(--border); border-radius:2px; overflow:hidden; }
+  .day-card.today { border-color:var(--accent); box-shadow:3px 3px 0 var(--accent-light); }
+  .day-card.complete { border-color:var(--done); }
+  .day-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; cursor:pointer; user-select:none; background:var(--cream); border-bottom:1px solid var(--border); transition:background 0.15s; }
+  .day-card.complete .day-header { background:var(--done-bg); border-bottom-color:#b8d9c0; }
+  .day-card.today .day-header { background:var(--accent-light); border-bottom-color:var(--accent); }
+  .day-header:hover { filter:brightness(0.97); }
+  .day-title-wrap { display:flex; align-items:center; gap:10px; }
+  .day-num { font-family:'Playfair Display',serif; font-size:22px; font-weight:700; color:var(--muted); line-height:1; min-width:28px; }
+  .day-card.today .day-num { color:var(--accent); }
+  .day-card.complete .day-num { color:var(--done); }
+  .day-name { font-size:13px; font-weight:500; }
+  .day-date { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); margin-top:1px; }
+  .day-badge { display:flex; align-items:center; gap:6px; }
+  .badge-count { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); }
+  .badge-icon { width:22px; height:22px; border-radius:50%; border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; }
+  .day-card.complete .badge-icon { background:var(--done); border-color:var(--done); color:white; }
+  .chevron { font-size:10px; color:var(--muted); transition:transform 0.25s; margin-left:8px; }
+  .day-card.open .chevron { transform:rotate(180deg); }
+  .day-body { display:none; }
+  .day-card.open .day-body { display:block; }
+
+  .milestone-badge { display:flex; align-items:flex-start; gap:8px; background:var(--gold-light); border:1px solid #d4b84a; padding:10px 16px; font-size:11px; color:#6b4a00; line-height:1.5; }
+  .ms-icon { font-size:14px; flex-shrink:0; margin-top:1px; }
+
+  .task-item { display:flex; align-items:flex-start; gap:12px; padding:12px 16px; border-bottom:1px solid #f0ece4; cursor:pointer; transition:background 0.15s; }
+  .task-item:last-child { border-bottom:none; }
+  .task-item:hover { background:#faf8f4; }
+  .task-item.done { background:#f6faf7; }
+  .task-check { width:18px; height:18px; border:1.5px solid var(--border); border-radius:2px; flex-shrink:0; margin-top:1px; display:flex; align-items:center; justify-content:center; font-size:11px; background:white; transition:all 0.2s; }
+  .task-item.done .task-check { background:var(--done); border-color:var(--done); color:white; }
+  .task-content { flex:1; min-width:0; }
+  .task-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .task-tag { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:1px; text-transform:uppercase; padding:2px 6px; border-radius:1px; flex-shrink:0; }
+  .tag-listen { background:#e8f0fa; color:#2a5298; }
+  .tag-grammar { background:#fdf0e0; color:#8b5000; }
+  .tag-write { background:#fde8e8; color:#8b1a00; }
+  .tag-speak { background:#e8f5ec; color:#1a5c30; }
+  .tag-immerse { background:#ede8f5; color:#4a2a8b; }
+  .task-time { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); }
+  .task-name { font-size:13px; color:var(--ink); margin-top:3px; line-height:1.4; }
+  .task-item.done .task-name { text-decoration:line-through; color:var(--muted); }
+  .task-links { margin-top:5px; display:flex; flex-wrap:wrap; gap:10px; }
+  .task-link { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--accent); text-decoration:none; border-bottom:1px solid transparent; transition:border-color 0.15s; }
+  .task-link:hover { border-bottom-color:var(--accent); }
+  .task-note { font-size:11px; color:var(--muted); margin-top:4px; font-style:italic; line-height:1.4; }
+
+  .reset-wrap { text-align:center; margin-top:32px; }
+  .reset-btn { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--muted); background:none; border:1px solid var(--border); padding:6px 16px; cursor:pointer; border-radius:1px; transition:all 0.2s; }
+  .reset-btn:hover { color:var(--accent); border-color:var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-label">Programme de récupération · 12 mois</div>
+  <h1>Retour au <em>C1</em></h1>
+</div>
+
+<div id="phaseBanner" class="phase-banner p1">
+  <div class="phase-top">
+    <div class="phase-name" id="phaseName"></div>
+    <div class="phase-weeks" id="phaseWeeks"></div>
+  </div>
+  <div class="phase-goal" id="phaseGoal"></div>
+  <div class="phase-tags" id="phaseTags"></div>
+</div>
+
+<div class="phase-progress">
+  <div class="phase-progress-label">
+    <span id="phaseProgressLabel">Прогресс фазы</span>
+    <span id="phaseProgressPct">0%</span>
+  </div>
+  <div class="phase-bar"><div class="phase-fill p1f" id="phaseFill" style="width:0%"></div></div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-box"><div class="stat-val" id="statDone">0/0</div><div class="stat-lbl">сегодня</div></div>
+  <div class="stat-box"><div class="stat-val" id="statWeek">0%</div><div class="stat-lbl">неделя</div></div>
+  <div class="stat-box"><div class="stat-val" id="statStreak">0</div><div class="stat-lbl">дней подряд</div></div>
+</div>
+
+<div class="streak-row" id="streakRow"></div>
+
+<div class="week-nav">
+  <button id="btnPrev">← пред.</button>
+  <div class="week-label">
+    <span id="weekDates"></span>
+    <span class="week-num" id="weekNum"></span>
+  </div>
+  <button id="btnNext">след. →</button>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-meta">
+    <span>Прогресс недели</span>
+    <span><strong id="progDone">0</strong> / <span id="progTotal">0</span> задач</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+</div>
+
+<div class="days-grid" id="daysGrid"></div>
+
+<div class="reset-wrap">
+  <button class="reset-btn" onclick="if(confirm('Сбросить весь прогресс?')) resetAll()">↺ Сбросить прогресс</button>
+</div>
+
+<script>
+const START = new Date(2025,3,9);
+const MONTHS = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+const DAYS_FULL = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+const DAYS_SHORT = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+
+const PHASES = [
+  { id:'p1', name:'Фаза 1 — Разморозка', weekStart:1, weekEnd:8,
+    goal:'Убрать страх, активировать пассивный словарный запас. Первые тексты.',
+    tags:['Passé composé vs imparfait','Futur simple','Conditionnel','Описание и мнение','Текст в Tandem'],
+    css:'p1', fill:'p1f' },
+  { id:'p2', name:'Фаза 2 — Реактивация', weekStart:9, weekEnd:26,
+    goal:'Заговорить без судорог. Переход на голос. Сложная грамматика.',
+    tags:['Subjonctif','Согласование времён','Связки C1','Аргументация','Голосовой Tandem'],
+    css:'p2', fill:'p2f' },
+  { id:'p3', name:'Фаза 3 — Выход на C1', weekStart:27, weekEnd:52,
+    goal:'Беглость и комплексность. Академический регистр. Эссе и аналитика.',
+    tags:['Номинализация','Стилистика','Регистры речи','Эссе C1','France Culture'],
+    css:'p3', fill:'p3f' }
+];
+
+const MILESTONES = {
+  8:  '🎯 Конец Фазы 1. Оцени: стало ли легче читать и слушать? Сравни с первой неделей.',
+  13: '🎙 С этой недели Tandem — только голос. Текст больше не считается.',
+  26: '🏁 Конец Фазы 2. Пройди онлайн-тест C1 и зафиксируй результат.',
+  52: '🏆 Год завершён. Запиши голосовое и сравни с первым.'
+};
+
+function getPhase(w) {
+  if (w <= 8) return PHASES[0];
+  if (w <= 26) return PHASES[1];
+  return PHASES[2];
+}
+
+function grammarTopic(w) {
+  const g = {
+    1:'Passé composé — повторение образования и употребления',
+    2:'Imparfait — образование и отличие от passé composé',
+    3:'Passé composé vs imparfait — практика различения',
+    4:'Plus-que-parfait — предпрошедшее время',
+    5:'Futur simple и futur proche',
+    6:'Conditionnel présent — вежливость и гипотезы',
+    7:'Повторение: все прошедшие времена вместе',
+    8:'Артикли и предлоги — типичные русскоязычные ошибки',
+    9:'Subjonctif présent — образование',
+    10:'Subjonctif: после глаголов желания и эмоций',
+    11:'Subjonctif: после безличных выражений (il faut que…)',
+    12:'Subjonctif vs Indicatif — когда что выбрать',
+    13:'Subjonctif passé',
+    14:'Согласование времён в косвенной речи',
+    15:'Passif — пассивный залог',
+    16:'Gérondif и participe présent',
+    17:'Participe passé — причастные обороты',
+    18:'Связки: добавление (de plus, par ailleurs, en outre)',
+    19:'Связки: противопоставление (cependant, néanmoins, toutefois)',
+    20:'Связки: причина и следствие (étant donné, ainsi, c\'est pourquoi)',
+    21:'Hypothèse: si + conditionnel (все три типа)',
+    22:'Номинализация — глагол и прилагательное → существительное',
+    23:'Относительные придаточные: dont, lequel, auquel, duquel',
+    24:'Emphase: c\'est… qui / c\'est… que',
+    25:'Повторение Фазы 2 — разбор своих ошибок из текстов',
+    26:'Самодиагностика: пройти онлайн-тест C1'
+  };
+  if (g[w]) return g[w];
+  if (w <= 30) return 'Номинализация и субстантивация в письменном стиле';
+  if (w <= 34) return 'Пассивные и безличные конструкции академического текста';
+  if (w <= 38) return 'Регистры: устный vs письменный vs académique';
+  if (w <= 42) return 'Риторические структуры эссе C1';
+  if (w <= 46) return 'Тонкости subjonctif в письменной речи';
+  if (w <= 50) return 'Свободная отработка — по собственным слабым местам';
+  return 'Финальный тест DALF C1 онлайн';
+}
+
+function writingTopic(w) {
+  const p1 = ['Опиши своё утро на французском','Моё любимое место в городе',
+    'Почему я снова учу французский','Человек, которым я восхищаюсь',
+    'Моё отношение к путешествиям','Мой обычный день — прошлое и сейчас',
+    'Книга или фильм, который запомнился','Чего я жду от этого года'];
+  if (w <= 8) return p1[w-1];
+
+  const p2 = ['Городская жизнь vs деревня: аргументы за и против',
+    'Польза изучения иностранных языков для карьеры',
+    'Социальные сети — угроза или возможность?',
+    'Нужно ли высшее образование для успеха?',
+    'Влияние технологий на общение между людьми',
+    'Туризм: культурное обогащение или разрушение?',
+    'Работа из дома: плюсы и минусы',
+    'Следовать за толпой или идти своим путём?',
+    'Роль культуры в формировании личности',
+    'Можно ли доверять СМИ сегодня?',
+    'Экология vs экономика: где баланс?',
+    'Что значит быть образованным человеком сегодня?',
+    'Молодёжь и политика: безразличие или мудрость?',
+    'Феминизм в современном мире',
+    'Роскошь: потребность или иллюзия?',
+    'Искусство в эпоху искусственного интеллекта',
+    'Что теряет язык в цифровую эпоху?',
+    'Мигранты и национальная идентичность'];
+  if (w <= 26) return p2[w-9];
+
+  const p3 = [
+    'La mondialisation menace-t-elle les cultures minoritaires?',
+    'Le progrès technologique est-il une menace pour l\'emploi?',
+    'Croissance économique et développement durable: conciliation possible?',
+    'Le bonheur est-il une affaire personnelle ou collective?',
+    'La liberté d\'expression a-t-elle des limites?',
+    'L\'intelligence artificielle: outil ou rival de l\'humain?',
+    'La mémoire historique: devoir ou fardeau?',
+    'L\'identité nationale face à la mondialisation',
+    'Le rôle de l\'État dans la vie privée des citoyens',
+    'La littérature peut-elle changer le monde?',
+    'Sommes-nous libres dans une société de surveillance?',
+    'La famille traditionnelle est-elle encore un modèle?'
+  ];
+  return p3[Math.floor((w-27)/2) % p3.length];
+}
+
+function getWeekdayTasks(w) {
+  if (w <= 8) return [
+    { tag:'listen', cls:'tag-listen', time:'10 мин',
+      name:'Слушание + чтение транскрипта',
+      links:[{url:'https://francais.rfi.fr/fr/tag/journal-en-fran%C3%A7ais-facile',label:'RFI — Journal en français facile'}],
+      note:'Слушай без перевода, потом читай транскрипт. Не ищи каждое слово — понимай общее.' },
+    { tag:'grammar', cls:'tag-grammar', time:'15 мин',
+      name:'Грамматика: ' + grammarTopic(w),
+      links:[{url:'https://www.ortholud.com/',label:'Ortholud'},{url:'https://leconjugueur.lefigaro.fr/',label:'Le Conjugueur'}],
+      note:'10 мин упражнений → 5 мин: напиши 3 своих предложения с этой конструкцией.' },
+    { tag:'write', cls:'tag-write', time:'20 мин',
+      name:'Письмо 150–200 слов: ' + writingTopic(w),
+      links:[{url:'https://bonpatron.com/',label:'BonPatron — проверка'}],
+      note:'После написания — проверь в BonPatron. Зафиксируй повторяющиеся ошибки.' },
+    { tag:'speak', cls:'tag-speak', time:'15 мин',
+      name:'Tandem — текстовый чат с носителем',
+      links:[{url:'https://www.tandem.net/',label:'Tandem'}],
+      note:'Фаза 1: только текст. Пиши о себе, задавай вопросы. Цель — убрать страх.' }
+  ];
+
+  if (w <= 26) return [
+    { tag:'listen', cls:'tag-listen', time:'10 мин',
+      name:'RFI + Français Authentique (чередовать)',
+      links:[{url:'https://francais.rfi.fr/fr/tag/journal-en-fran%C3%A7ais-facile',label:'RFI'},{url:'https://www.youtube.com/@francaisauthentique',label:'Français Authentique'}],
+      note:'Чётные дни — RFI, нечётные — Français Authentique. Без субтитров.' },
+    { tag:'grammar', cls:'tag-grammar', time:'15 мин',
+      name:'Грамматика: ' + grammarTopic(w),
+      links:[{url:'https://www.ortholud.com/',label:'Ortholud'},{url:'https://leconjugueur.lefigaro.fr/',label:'Le Conjugueur'}],
+      note:'Упражнения → 3 предложения своими словами → запиши конструкцию в личный словарь.' },
+    { tag:'write', cls:'tag-write', time:'20 мин',
+      name:'Письмо 180–220 слов: ' + writingTopic(w),
+      links:[{url:'https://bonpatron.com/',label:'BonPatron'}],
+      note:'Используй минимум 2 конструкции из текущей темы грамматики.' },
+    { tag:'speak', cls:'tag-speak', time:'15 мин',
+      name: w >= 13 ? 'Tandem — голосовой разговор с носителем 🎙' : 'Tandem — текст (до перехода на голос осталось ' + (13-w) + ' нед.)',
+      links:[{url:'https://www.tandem.net/',label:'Tandem'}],
+      note: w >= 13 ? '⚡ Только голос! Текст не считается. После разговора — запиши 2 своих ошибки.' : 'С недели 13 — только голос. Готовься психологически.' }
+  ];
+
+  return [
+    { tag:'listen', cls:'tag-listen', time:'10 мин',
+      name:'France Culture — академический французский',
+      links:[{url:'https://www.radiofrance.fr/franceculture',label:'France Culture'},{url:'https://www.arte.tv/fr/',label:'Arte.tv'}],
+      note:'Слушай на интересные тебе темы. Цель — понимать 90%+ без усилий.' },
+    { tag:'grammar', cls:'tag-grammar', time:'15 мин',
+      name:'Стилистика: ' + grammarTopic(w),
+      links:[{url:'https://bescherelle.com/',label:'Bescherelle онлайн'},{url:'https://www.ortholud.com/',label:'Ortholud'}],
+      note:'Фокус на письменный C1: номинализация, пассив, связки аргументации.' },
+    { tag:'write', cls:'tag-write', time:'20 мин',
+      name:'Эссе 200–300 слов: ' + writingTopic(w),
+      links:[{url:'https://bonpatron.com/',label:'BonPatron'}],
+      note:'Структура: тезис → 2 аргумента с примерами → контраргумент → вывод.' },
+    { tag:'speak', cls:'tag-speak', time:'15 мин',
+      name:'Tandem — голос + монолог на 3 мин на заданную тему',
+      links:[{url:'https://www.tandem.net/',label:'Tandem'}],
+      note:'1 мин подготовки → говоришь без остановок → после: запиши 2 ошибки.' }
+  ];
+}
+
+function getWeekendTasks(w) {
+  if (w <= 8) return [
+    { tag:'speak', cls:'tag-speak', time:'7 мин',
+      name:'Устный дневник — запись о прошедшей неделе',
+      links:[], note:'Запиши голосовое на телефон. Прослушай. Найди и запиши 2–3 ошибки письменно.' },
+    { tag:'immerse', cls:'tag-immerse', time:'18 мин',
+      name:'Погружение: Arte.tv или Français Authentique без субтитров',
+      links:[{url:'https://www.arte.tv/fr/',label:'Arte.tv'},{url:'https://www.youtube.com/@francaisauthentique',label:'Français Authentique'}],
+      note:'Не переводи — просто погружение. Цель: привыкнуть к темпу живой речи.' }
+  ];
+  if (w <= 26) return [
+    { tag:'speak', cls:'tag-speak', time:'10 мин',
+      name:'Устный дневник — 5–7 мин монолог на конкретную тему',
+      links:[], note:'Говори о новости, событии, книге. Фиксируй слова-паразиты и паузы.' },
+    { tag:'immerse', cls:'tag-immerse', time:'15 мин',
+      name:'Французский сериал — 1 эпизод, без русских субтитров',
+      links:[{url:'https://www.arte.tv/fr/',label:'Arte.tv'},{url:'https://www.netflix.com/',label:'Netflix: Lupin / Dix Pour Cent'}],
+      note:'Если ничего не понял — включи французские (не русские) субтитры.' }
+  ];
+  return [
+    { tag:'speak', cls:'tag-speak', time:'10 мин',
+      name:'Монолог C1: аргументация на сложную тему, 5–7 мин',
+      links:[], note:'Тему бери из France Culture. После — самооценка по структуре аргументов.' },
+    { tag:'immerse', cls:'tag-immerse', time:'15 мин',
+      name:'France Culture / Arte — с заметками на французском',
+      links:[{url:'https://www.radiofrance.fr/franceculture',label:'France Culture'},{url:'https://www.arte.tv/fr/',label:'Arte.tv'}],
+      note:'После просмотра — напиши 3 предложения summary на французском.' }
+  ];
+}
+
+// ============================================================
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
+function dateKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function taskKey(dk,ti){return `${dk}_t${ti}`;}
+function isWE(d){const w=d.getDay();return w===0||w===6;}
+function today(){const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate());}
+function getWeekNum(d){return Math.max(1,Math.floor((d-START)/(7*24*3600*1000))+1);}
+function getWeekStart(off){const base=new Date(2025,3,7);return addDays(base,off*7);}
+function getState(){try{return JSON.parse(localStorage.getItem('fr_v3')||'{}');}catch(e){return {};}}
+function saveState(s){try{localStorage.setItem('fr_v3',JSON.stringify(s));}catch(e){}}
+
+let weekOff=0, openDay=null;
+
+function renderPhaseBanner(wn) {
+  const ph=getPhase(wn);
+  const b=document.getElementById('phaseBanner');
+  b.className='phase-banner '+ph.css;
+  document.getElementById('phaseName').textContent=ph.name;
+  document.getElementById('phaseWeeks').textContent=`Недели ${ph.weekStart}–${ph.weekEnd}`;
+  document.getElementById('phaseGoal').textContent=ph.goal;
+  document.getElementById('phaseTags').innerHTML=ph.tags.map(t=>`<span class="phase-tag">${t}</span>`).join('');
+  const total=ph.weekEnd-ph.weekStart+1;
+  const done=Math.min(Math.max(wn-ph.weekStart,0),total);
+  const pct=Math.round(done/total*100);
+  document.getElementById('phaseProgressLabel').textContent=`Прогресс фазы · неделя ${wn} из ${ph.weekEnd}`;
+  document.getElementById('phaseProgressPct').textContent=pct+'%';
+  const fill=document.getElementById('phaseFill');
+  fill.className='phase-fill '+ph.fill;
+  fill.style.width=pct+'%';
+}
+
+function renderWeek() {
+  const state=getState();
+  const grid=document.getElementById('daysGrid');
+  grid.innerHTML='';
+  const ws=getWeekStart(weekOff);
+  const todayDate=today();
+  const wn=getWeekNum(addDays(ws,3));
+  renderPhaseBanner(wn);
+  const we=addDays(ws,6);
+  document.getElementById('weekDates').textContent=`${ws.getDate()} ${MONTHS[ws.getMonth()]} — ${we.getDate()} ${MONTHS[we.getMonth()]}`;
+  document.getElementById('weekNum').textContent=`Неделя ${wn} из 52`;
+  document.getElementById('btnPrev').disabled=weekOff<=0;
+
+  let weekTotal=0,weekDone=0;
+
+  for(let i=0;i<7;i++){
+    const date=addDays(ws,i);
+    const dKey=dateKey(date);
+    const dwn=getWeekNum(date);
+    const tasks=isWE(date)?getWeekendTasks(dwn):getWeekdayTasks(dwn);
+    const isToday=dateKey(date)===dateKey(todayDate);
+    let done=0;
+    tasks.forEach((_,ti)=>{if(state[taskKey(dKey,ti)])done++;});
+    weekTotal+=tasks.length; weekDone+=done;
+    const allDone=done===tasks.length;
+    const isOpen=openDay===dKey||isToday;
+
+    const card=document.createElement('div');
+    card.className=`day-card${isToday?' today':''}${allDone?' complete':''}${isOpen?' open':''}`;
+
+    const hdr=document.createElement('div');
+    hdr.className='day-header';
+    hdr.innerHTML=`
+      <div class="day-title-wrap">
+        <div class="day-num">${date.getDate()}</div>
+        <div>
+          <div class="day-name">${DAYS_FULL[date.getDay()]}${isToday?' <span style="color:var(--accent);font-size:10px"> — сегодня</span>':''}</div>
+          <div class="day-date">${DAYS_SHORT[date.getDay()]} · ${date.getDate()} ${MONTHS[date.getMonth()]}</div>
+        </div>
+      </div>
+      <div class="day-badge">
+        <span class="badge-count">${done}/${tasks.length}</span>
+        <div class="badge-icon">${allDone?'✓':''}</div>
+        <span class="chevron">▼</span>
+      </div>`;
+    hdr.addEventListener('click',()=>{openDay=openDay===dKey?null:dKey;renderWeek();});
+
+    const body=document.createElement('div');
+    body.className='day-body';
+
+    if(MILESTONES[dwn]&&date.getDay()===1){
+      const ms=document.createElement('div');
+      ms.className='milestone-badge';
+      ms.innerHTML=`<span class="ms-icon">⭐</span><span>${MILESTONES[dwn]}</span>`;
+      body.appendChild(ms);
+    }
+
+    tasks.forEach((task,ti)=>{
+      const tk=taskKey(dKey,ti);
+      const isDone=!!state[tk];
+      const item=document.createElement('div');
+      item.className=`task-item${isDone?' done':''}`;
+      const links=(task.links||[]).map(l=>`<a class="task-link" href="${l.url}" target="_blank" rel="noopener">↗ ${l.label}</a>`).join('');
+      item.innerHTML=`
+        <div class="task-check">${isDone?'✓':''}</div>
+        <div class="task-content">
+          <div class="task-top"><span class="task-tag ${task.cls}">${task.tag}</span><span class="task-time">${task.time}</span></div>
+          <div class="task-name">${task.name}</div>
+          ${links?`<div class="task-links">${links}</div>`:''}
+          ${task.note?`<div class="task-note">${task.note}</div>`:''}
+        </div>`;
+      item.addEventListener('click',e=>{
+        if(e.target.tagName==='A')return;
+        const s=getState(); s[tk]=!s[tk]; saveState(s); renderWeek(); renderStats();
+      });
+      body.appendChild(item);
+    });
+
+    card.appendChild(hdr); card.appendChild(body); grid.appendChild(card);
+  }
+
+  document.getElementById('progDone').textContent=weekDone;
+  document.getElementById('progTotal').textContent=weekTotal;
+  document.getElementById('progFill').style.width=(weekTotal>0?Math.round(weekDone/weekTotal*100):0)+'%';
+  renderStats();
+}
+
+function renderStats(){
+  const state=getState();
+  const td=today(); const dk=dateKey(td);
+  const wn=getWeekNum(td);
+  const tasks=isWE(td)?getWeekendTasks(wn):getWeekdayTasks(wn);
+  let done=0; tasks.forEach((_,ti)=>{if(state[taskKey(dk,ti)])done++;});
+  document.getElementById('statDone').textContent=`${done}/${tasks.length}`;
+
+  const ws=getWeekStart(weekOff);
+  let wt=0,wd=0;
+  for(let i=0;i<7;i++){
+    const d=addDays(ws,i); const dwn=getWeekNum(d);
+    const ts=isWE(d)?getWeekendTasks(dwn):getWeekdayTasks(dwn);
+    ts.forEach((_,ti)=>{wt++;if(state[taskKey(dateKey(d),ti)])wd++;});
+  }
+  document.getElementById('statWeek').textContent=wt>0?Math.round(wd/wt*100)+'%':'0%';
+
+  let streak=0,cd=new Date(td);
+  for(let i=0;i<365;i++){
+    const cdk=dateKey(cd); const cwn=getWeekNum(cd);
+    const ts=isWE(cd)?getWeekendTasks(cwn):getWeekdayTasks(cwn);
+    if(ts.some((_,ti)=>state[taskKey(cdk,ti)])){streak++;cd=addDays(cd,-1);}else break;
+  }
+  document.getElementById('statStreak').textContent=streak;
+
+  const row=document.getElementById('streakRow');
+  row.innerHTML='';
+  for(let i=13;i>=0;i--){
+    const d=addDays(td,-i); const dwn=getWeekNum(d);
+    const ts=isWE(d)?getWeekendTasks(dwn):getWeekdayTasks(dwn);
+    const anyDone=ts.some((_,ti)=>state[taskKey(dateKey(d),ti)]);
+    const dot=document.createElement('div');
+    dot.className=`streak-dot${anyDone?' lit':''}${i===0?' today-dot':''}`;
+    row.appendChild(dot);
+  }
+}
+
+function resetAll(){try{localStorage.removeItem('fr_v3');}catch(e){}openDay=null;renderWeek();}
+
+document.getElementById('btnPrev').addEventListener('click',()=>{if(weekOff>0){weekOff--;renderWeek();}});
+document.getElementById('btnNext').addEventListener('click',()=>{weekOff++;renderWeek();});
+
+(function init(){
+  const base=new Date(2025,3,7);
+  weekOff=Math.max(0,Math.floor((today()-base)/(7*24*3600*1000)));
+  renderWeek();
+})();
+</script>
+</body>
+</html>
